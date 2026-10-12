@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCR Bench - Gold Dataset Studio & Benchmark Inspector</title>
+  <meta name="description" content="Interactive Data Studio for exploring 250 Gold Benchmark documents across Invoices, RBI Circulars, Legal KYC, Handwritten notes, and Newspapers.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header / Navigation Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1 class="logo-title">OCR Bench <span class="badge-gold">Data Studio</span></h1>
+          <p class="logo-subtitle">Gold Ground-Truth Benchmark Explorer (250 Documents)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search & Global Filters -->
+    <div class="header-center">
+      <div class="search-bar">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="globalSearch" placeholder="Search text, invoice #, ID card, keys, or metadata (Press '/' to focus)..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </div>
+    </div>
+
+    <!-- View Mode Switcher -->
+    <div class="header-right">
+      <nav class="view-switcher" role="tablist">
+        <button class="nav-btn active" data-view="gallery" id="btnViewGallery" title="Card Grid View">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Gallery</span>
+        </button>
+        <button class="nav-btn" data-view="inspector" id="btnViewInspector" title="Document Deep Dive Inspector">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="12" y1="3" x2="12" y2="21"></line>
+          </svg>
+          <span>Inspector</span>
+        </button>
+        <button class="nav-btn" data-view="analytics" id="btnViewAnalytics" title="Dataset Health & Statistics">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>Analytics</span>
+        </button>
+        <button class="nav-btn" data-view="leaderboard" id="btnViewLeaderboard" title="Model Benchmark Comparison">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="7"></circle>
+            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+          </svg>
+          <span>Leaderboard</span>
+        </button>
+      </nav>
+
+      <input type="file" id="fileManifestInput" accept=".json" style="display: none;">
+      <button class="btn-action" id="btnLoadCustomManifest" title="Load custom dataset_manifest.json file">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <span>Load JSON</span>
+      </button>
+      <button class="btn-action" id="btnExportModal" title="Export Dataset">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Export</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Filter Ribbon -->
+  <section class="filter-ribbon">
+    <div class="category-chips" id="categoryChips">
+      <button class="chip active" data-category="all">
+        <span class="chip-dot dot-all"></span>
+        <span>All Domains</span>
+        <span class="chip-count" id="countAll">250</span>
+      </button>
+      <button class="chip" data-category="invoices">
+        <span class="chip-dot dot-invoices"></span>
+        <span>Invoices</span>
+        <span class="chip-count" id="countInvoices">50</span>
+      </button>
+      <button class="chip" data-category="rbi_circulars">
+        <span class="chip-dot dot-rbi"></span>
+        <span>RBI Circulars</span>
+        <span class="chip-count" id="countRbi">50</span>
+      </button>
+      <button class="chip" data-category="legal_kyc">
+        <span class="chip-dot dot-kyc"></span>
+        <span>Legal & KYC</span>
+        <span class="chip-count" id="countKyc">50</span>
+      </button>
+      <button class="chip" data-category="handwritten">
+        <span class="chip-dot dot-handwritten"></span>
+        <span>Handwritten</span>
+        <span class="chip-count" id="countHandwritten">50</span>
+      </button>
+      <button class="chip" data-category="newspapers">
+        <span class="chip-dot dot-newspapers"></span>
+        <span>Newspapers</span>
+        <span class="chip-count" id="countNewspapers">50</span>
+      </button>
+    </div>
+
+    <div class="sub-filter-group">
+      <select id="selectSubType" class="dropdown-filter">
+        <option value="all">All Document Subtypes</option>
+      </select>
+      <select id="selectSort" class="dropdown-filter">
+        <option value="id_asc">Sort: ID (Ascending)</option>
+        <option value="id_desc">Sort: ID (Descending)</option>
+        <option value="keys_desc">Sort: Key Count (High to Low)</option>
+        <option value="len_desc">Sort: Character Length (High to Low)</option>
+      </select>
+      <div class="active-count-label" id="activeFilterSummary">Showing 250 of 250 documents</div>
+    </div>
+  </section>
+
+  <!-- Main View Container -->
+  <main class="main-content">
+    
+    <!-- ================================================================= -->
+    <!-- VIEW 1: GALLERY VIEW                                              -->
+    <!-- ================================================================= -->
+    <div class="view-panel active" id="viewGallery">
+      <div class="gallery-grid" id="galleryGrid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+      <div class="pagination-bar" id="paginationBar">
+        <button class="btn-page" id="btnPrevPage" disabled>← Previous</button>
+        <span class="page-indicator" id="pageIndicator">Page 1 of 1</span>
+        <button class="btn-page" id="btnNextPage">Next →</button>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 2: DOCUMENT STUDIO / SPLIT INSPECTOR                         -->
+    <!-- ================================================================= -->
+    <div class="view-panel" id="viewInspector">
+      <div class="inspector-layout">
+        
+        <!-- Left: Image Canvas Studio -->
+        <div class="canvas-pane">
+          <div class="canvas-toolbar">
+            <div class="toolbar-group">
+              <button class="tool-btn" id="btnZoomIn" title="Zoom In (+)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="11" y1="8" x2="11" y2="14"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+              </button>
+              <button class="tool-btn" id="btnZoomOut" title="Zoom Out (-)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+              </button>
+              <button class="tool-btn" id="btnZoomReset" title="Reset Zoom">
+                <span>100%</span>
+              </button>
+              <button class="tool-btn" id="btnFitScreen" title="Fit to Viewport">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <polyline points="9 21 3 21 3 15"></polyline>
+                  <line x1="21" y1="3" x2="14" y2="10"></line>
+                  <line x1="3" y1="21" x2="10" y2="14"></line>
+                </svg>
+              </button>
+            </div>
+
+            <div class="toolbar-group">
+              <button class="tool-btn" id="btnRotate" title="Rotate 90°">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+              </button>
+              <button class="tool-btn toggle-active" id="btnToggleBoost" title="Toggle Step 1 OpenCV Enhancement">
+                <span class="indicator-led"></span>
+                <span>OpenCV Boost</span>
+              </button>
+            </div>
+
+            <div class="toolbar-group">
+              <a class="tool-btn" id="btnDownloadImage" download title="Download Full Res Image">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <!-- Interactive Viewport -->
+          <div class="canvas-viewport" id="canvasViewport">
+            <div class="canvas-transform-layer" id="canvasTransformLayer">
+              <img id="inspectorDocImage" src="" alt="Document Preview">
+            </div>
+
+            <!-- Quality HUD overlay -->
+            <div class="quality-hud" id="qualityHud">
+              <div class="hud-item"><span class="hud-label">Doc ID:</span> <span id="hudDocId" class="hud-val">inv_001</span></div>
+              <div class="hud-item"><span class="hud-label">Laplacian Blur:</span> <span id="hudBlur" class="hud-val status-good">184.2</span></div>
+              <div class="hud-item"><span class="hud-label">Paper-White:</span> <span id="hudPaperWhite" class="hud-val status-good">Pass (248)</span></div>
+              <div class="hud-item"><span class="hud-label">Resolution:</span> <span id="hudResolution" class="hud-val">2481 × 3508</span></div>
+            </div>
+          </div>
+
+          <!-- Bottom Navigation Strip -->
+          <div class="canvas-nav-strip">
+            <button class="nav-arrow-btn" id="btnNavPrevDoc" title="Previous Document (Left Arrow)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span>Prev</span>
+            </button>
+            <div class="nav-strip-info">
+              <span id="navDocIndex">1 of 250</span>
+              <span class="nav-sep">•</span>
+              <span id="navDocTitle">INV-2026-1000 (Commercial Tax Invoice)</span>
+            </div>
+            <button class="nav-arrow-btn" id="btnNavNextDoc" title="Next Document (Right Arrow)">
+              <span>Next</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Ground Truth & Model Intelligence Studio -->
+        <div class="details-pane">
+          <div class="details-tabs" role="tablist">
+            <button class="tab-btn active" data-tab="tabKeyValues" id="btnTabKV">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+              </svg>
+              <span>Key-Value Pairs</span>
+              <span class="tab-badge" id="badgeKvCount">8</span>
+            </button>
+            <button class="tab-btn" data-tab="tabMarkdown" id="btnTabMarkdown">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="8 12 12 16 16 12"></polyline>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+              </svg>
+              <span>Rendered Markdown</span>
+            </button>
+            <button class="tab-btn" data-tab="tabPlainText" id="btnTabPlainText">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="4" y1="9" x2="20" y2="9"></line>
+                <line x1="4" y1="15" x2="20" y2="15"></line>
+                <line x1="10" y1="3" x2="8" y2="21"></line>
+                <line x1="16" y1="3" x2="14" y2="21"></line>
+              </svg>
+              <span>Plain Text</span>
+            </button>
+            <button class="tab-btn" data-tab="tabProvenance" id="btnTabProvenance">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span>Provenance</span>
+            </button>
+            <button class="tab-btn tab-highlight" data-tab="tabModelDiff" id="btnTabModelDiff">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 3 21 3 21 9"></polyline>
+                <line x1="4" y1="20" x2="21" y2="3"></line>
+                <polyline points="21 16 21 21 16 21"></polyline>
+                <line x1="15" y1="15" x2="21" y2="21"></line>
+                <line x1="4" y1="4" x2="9" y2="9"></line>
+              </svg>
+              <span>Model Diff & CER</span>
+            </button>
+          </div>
+
+          <!-- Tab Content Panes -->
+          <div class="tab-content-container">
+            
+            <!-- Tab 1: Key-Value Pairs -->
+            <div class="tab-pane active" id="tabKeyValues">
+              <div class="pane-header">
+                <div class="search-within">
+                  <input type="text" id="inputFilterKeys" placeholder="Filter keys or values...">
+                </div>
+                <div class="pane-actions">
+                  <button class="btn-micro" id="btnCopyJson" title="Copy Key-Value JSON">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span>Copy JSON</span>
+                  </button>
+                  <button class="btn-micro" id="btnToggleRawJson">Raw JSON</button>
+                </div>
+              </div>
+              <div class="kv-table-scroll" id="kvTableContainer">
+                <table class="kv-table" id="kvTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 35%;">Standardized Key</th>
+                      <th style="width: 65%;">Ground-Truth Value</th>
+                    </tr>
+                  </thead>
+                  <tbody id="kvTableBody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+                <pre class="raw-json-block" id="rawJsonBlock" style="display: none;"></pre>
+              </div>
+            </div>
+
+            <!-- Tab 2: Rendered Markdown -->
+            <div class="tab-pane" id="tabMarkdown">
+              <div class="pane-header">
+                <span class="pane-caption">Layout-Preserved Markdown (Tables & Headers)</span>
+                <button class="btn-micro" id="btnCopyMarkdown">Copy Markdown</button>
+              </div>
+              <div class="markdown-preview-pane" id="markdownPreview">
+                <!-- Rendered Markdown HTML -->
+              </div>
+            </div>
+
+            <!-- Tab 3: Plain Text -->
+            <div class="tab-pane" id="tabPlainText">
+              <div class="pane-header">
+                <div class="text-stats-pill">
+                  <span id="charCountLabel">Characters: 0</span>
+                  <span class="sep">•</span>
+                  <span id="wordCountLabel">Words: 0</span>
+                </div>
+                <button class="btn-micro" id="btnCopyPlainText">Copy Text</button>
+              </div>
+              <textarea class="plain-text-box" id="plainTextBox" readonly></textarea>
+            </div>
+
+            <!-- Tab 4: Provenance -->
+            <div class="tab-pane" id="tabProvenance">
+              <div class="provenance-grid" id="provenanceContainer">
+                <!-- Provenance metadata cards -->
+              </div>
+            </div>
+
+            <!-- Tab 5: Model Diff & CER Sandbox -->
+            <div class="tab-pane" id="tabModelDiff">
+              <div class="diff-header">
+                <div class="diff-model-select">
+                  <label for="selectDiffModel">Benchmark Model:</label>
+                  <select id="selectDiffModel" class="dropdown-filter">
+                    <option value="pipeline">The 4-Step Hybrid Pipeline (Final Approach)</option>
+                    <option value="glm_ocr">GLM-OCR 2 (0.9B)</option>
+                    <option value="nuextract">NuExtract Standalone</option>
+                    <option value="nanonets">Nanonets OCR (Qwen2-VL 7B)</option>
+                    <option value="numarkdown">NuMarkdown (8B)</option>
+                    <option value="docling">IBM Docling</option>
+                    <option value="layoutlm">LayoutLMv3-Base</option>
+                    <option value="paddle">PaddleOCR (PP-OCRv4)</option>
+                    <option value="tesseract">PyTesseract (v0.3.10)</option>
+                  </select>
+                </div>
+                <div class="diff-score-badges">
+                  <span class="metric-chip" id="diffCerBadge">CER: 1.2%</span>
+                  <span class="metric-chip" id="diffWerBadge">WER: 2.1%</span>
+                  <span class="metric-chip" id="diffLatencyBadge">Latency: 780 ms</span>
+                </div>
+              </div>
+
+              <div class="diff-viewer-container">
+                <div class="diff-legend">
+                  <span class="legend-item"><span class="legend-swatch match"></span> Exact Match</span>
+                  <span class="legend-item"><span class="legend-swatch deletion"></span> Deletion (Missed)</span>
+                  <span class="legend-item"><span class="legend-swatch insertion"></span> Insertion (Hallucinated)</span>
+                </div>
+                <div class="diff-content" id="diffContent">
+                  <!-- Visual diff highlighted tokens -->
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 3: DATASET ANALYTICS & HEALTH DASHBOARD                      -->
+    <!-- ================================================================= -->
+    <div class="view-panel" id="viewAnalytics">
+      <div class="analytics-layout">
+        
+        <!-- KPI Row -->
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-label">Gold Documents</div>
+            <div class="kpi-val" id="kpiTotalDocs">250</div>
+            <div class="kpi-sub">Balanced Ground-Truth Gold Standard</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Core Document Domains</div>
+            <div class="kpi-val">5</div>
+            <div class="kpi-sub">50 Documents per Domain</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Annotated Key-Value Pairs</div>
+            <div class="kpi-val" id="kpiTotalKeys">1,850+</div>
+            <div class="kpi-sub">Structured JSON Field Mappings</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Avg Characters per Page</div>
+            <div class="kpi-val" id="kpiAvgChars">842</div>
+            <div class="kpi-sub">High-density regulatory & invoice text</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Original HF Repositories</div>
+            <div class="kpi-val">5</div>
+            <div class="kpi-sub">Donut, IAM, BNL, RBI, KYC Cheques</div>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3 class="chart-title">Dataset Balance Across 5 Document Domains</h3>
+            <div class="chart-wrapper" id="chartCategoryBalance">
+              <!-- Rendered SVG bar chart -->
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Key-Value Schema Density per Category</h3>
+            <div class="chart-wrapper" id="chartKeyDensity">
+              <!-- Rendered SVG bar chart -->
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Text Character Distribution by Category</h3>
+            <div class="chart-wrapper" id="chartCharDistribution">
+              <!-- Rendered SVG range distribution -->
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Original Hugging Face Source Attribution</h3>
+            <div class="chart-wrapper" id="chartSourceAttribution">
+              <!-- Rendered provenance list -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- VIEW 4: MODEL LEADERBOARD & COMPARATIVE SANDBOX                   -->
+    <!-- ================================================================= -->
+    <div class="view-panel" id="viewLeaderboard">
+      <div class="leaderboard-layout">
+        
+        <div class="leaderboard-header">
+          <div>
+            <h2 class="section-heading">OCR & Document Understanding Benchmark Leaderboard</h2>
+            <p class="section-desc">Empirical comparison across 2,250 evaluated data points (250 gold documents × 9 model architectures)</p>
+          </div>
+          <div class="badge-winner">
+            <span>🏆 Final Choice: 4-Step Hybrid Pipeline (GLM-OCR 2 + NuExtract)</span>
+          </div>
+        </div>
+
+        <div class="leaderboard-table-card">
+          <table class="leaderboard-table" id="leaderboardTable">
+            <thead>
+              <tr>
+                <th>Model Architecture</th>
+                <th>Model Family</th>
+                <th>Char Accuracy ↑</th>
+                <th>CER ↓</th>
+                <th>WER ↓</th>
+                <th>Layout Score ↑</th>
+                <th>Key-Value F1 ↑</th>
+                <th>Latency (ms) ↓</th>
+                <th>VRAM (MB)</th>
+                <th>Hardware Support</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Decision Guidance Grid -->
+        <div class="decision-grid">
+          <div class="decision-card">
+            <div class="decision-tag">CPU Only (<2GB RAM)</div>
+            <h4>PaddleOCR (PP-OCRv4)</h4>
+            <p>Best for low-power edge devices and microcontrollers where GPU compute is completely unavailable. Good character recognition, but cannot preserve complex tables or perform key-value extraction.</p>
+          </div>
+          <div class="decision-card">
+            <div class="decision-tag">Consumer GPU (RTX 3050 6GB)</div>
+            <h4>GLM-OCR 2 (0.9B)</h4>
+            <p>Fits easily inside 2.4GB VRAM. Delivers state-of-the-art markdown tables, reading order preservation, and cursive handwriting detection with zero hallucination.</p>
+          </div>
+          <div class="decision-card">
+            <div class="decision-tag">Structured Key-Value Only</div>
+            <h4>Numind/NuExtract</h4>
+            <p>Specialized schema-following extractor. High precision and recall on key-value extraction, deterministic output ($T=0$), and zero chat hallucination.</p>
+          </div>
+          <div class="decision-card highlight">
+            <div class="decision-tag winning">Production Enterprise IDP</div>
+            <h4>The 4-Step Hybrid Pipeline</h4>
+            <p><strong>OpenCV Booster + GLM-OCR 2 + NuExtract (Pagewise) + NuExtract (Verification)</strong>. Highest accuracy (98.2%), lowest CER (1.8%), highest verified field F1 (97.9%), zero hallucinations.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Export Modal -->
+  <dialog class="modal-dialog" id="exportModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Export Benchmark Data</h3>
+        <button class="modal-close" id="btnCloseExportModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Export the current filtered subset or full gold dataset with ground truth text, markdown, and structured key-values:</p>
+        <div class="export-options">
+          <button class="export-opt-btn" id="btnExportJson">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            <div>
+              <strong>Complete Manifest (JSON)</strong>
+              <span>Full dataset with images, annotations, and Hugging Face citations</span>
+            </div>
+          </button>
+          <button class="export-opt-btn" id="btnExportCsv">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="3" y1="15" x2="21" y2="15"></line>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+            <div>
+              <strong>Flattened Dataset Table (CSV)</strong>
+              <span>Tabular export of ID, category, ground truth text, and keys</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Load Embedded Manifest Data first for 100% offline file:// compatibility -->
+  <script src="manifest_data.js"></script>
+  <!-- Main Studio Engine -->
+  <script src="app.js"></script>
+</body>
+</html>
